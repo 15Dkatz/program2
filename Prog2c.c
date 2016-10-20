@@ -1,10 +1,10 @@
 /*
  ============================================================================
  Name        : prog2.c
- Author      :
+ Author      : David Katz
  Version     :
  Copyright   :
- Description : Serial version of calculate histogram program
+ Description : Parallel version of calculate histogram program
  ============================================================================
  */
 
