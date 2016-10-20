@@ -24,7 +24,6 @@ struct histogram_arg_struct {
 };
 
 int calcHistogram (void *arg);
-float binSize;
 
 int main(void) {
 
@@ -82,9 +81,9 @@ int main(void) {
 		newHistogramVals[c] = newVal;
 	}
 
-	//	// print values of the new Histogram
+	// print values of the new Histogram
 	for (int p = 0; p < NUMBINS; p++){
-		printf("bin: %d  binStart: %f   binEnd:  %f  Histogram Value: %d\n", p, binSize*(float)p, binSize*(float)(p+1), newHistogramVals[p]);
+		printf("bin: %d Histogram Value: %d\n", p, newHistogramVals[p]);
 	}
 
 	return EXIT_SUCCESS;
@@ -116,7 +115,7 @@ int calcHistogram (void *arg) {
 		if ( data[cnt] < minVal ) minVal = data[cnt];
 	}
 
-	binSize = (maxVal-minVal)/(float)numBins;
+	float binSize = (maxVal-minVal)/(float)numBins;
 	printf("minVal: %f  maxVal: %f  binSize: %f\n", minVal, maxVal, binSize);
 
 	for (int i = 0; i < numDataPoints; i++){
