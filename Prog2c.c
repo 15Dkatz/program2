@@ -23,16 +23,12 @@ struct histogram_arg_struct {
 	int numBins;
 };
 
-//int *histogramVals;    /*global histogram array for all threads*/
-float binSize;		   /*bin size calculated from min and max of array values*/
-
 int calcHistogram (void *arg);
+float binSize;
 
 int main(void) {
 
 	float rawData[1000000];
-
-//	histogramVals =  malloc(NUMBINS * sizeof(int));
 
 	FILE *fileIn = fopen("numbers.bin", "rb");
 	if (fileIn == NULL){
@@ -41,32 +37,54 @@ int main(void) {
 	}
 
 	int cnt = 1000000;
+	int splitCnt = cnt/2;
 	int resultCode;
 
 	resultCode = fread(rawData, sizeof(rawData[0]), sizeof(rawData)/sizeof(rawData[0]), fileIn);
 
 	fclose(fileIn);
 
-	// calcHistogram (rawData, cnt, NUMBINS);
-
 	// make two smaller arrays by splitting the rawData in half
-	float *rawDataHalf1 = malloc(cnt/2 * sizeof(float));
-	float *rawDataHalf2 = malloc(cnt/2 * sizeof(float));
+	float *rawDataHalf1 = malloc(splitCnt * sizeof(float));
+	float *rawDataHalf2 = malloc(splitCnt * sizeof(float));
 
-	memcpy(rawDataHalf1, rawData, cnt/2 * sizeof(float));
-	memcpy(rawDataHalf2, rawData + cnt/2, cnt/2 * sizeof(float));
+	memcpy(rawDataHalf1, rawData, splitCnt * sizeof(float));
+	memcpy(rawDataHalf2, rawData + splitCnt, splitCnt * sizeof(float));
 
 	// create a thread for each half.
 	pthread_t id1;
 	struct histogram_arg_struct args1;
 	args1.histogramVals = malloc(NUMBINS * sizeof(int));
 	args1.rawData = rawDataHalf1;
-	args1.numDataPoints = cnt/2;
+	args1.numDataPoints = splitCnt;
 	args1.numBins = NUMBINS;
 	pthread_create(&id1, NULL, calcHistogram, &args1);
 
-	for (int cnt1 = 0; cnt1 < NUMBINS; cnt1++){
-		//printf("bin: %d  binStart: %f   binEnd:  %f  Histogram Value: %d\n", cnt1, binSize*(float)cnt1, binSize*(float)(cnt1+1), histogramVals[cnt1]);
+
+	pthread_t id2;
+	struct histogram_arg_struct args2;
+	args2.histogramVals = malloc(NUMBINS * sizeof(int));
+	args2.rawData = rawDataHalf2;
+	args2.numDataPoints = splitCnt;
+	args2.numBins = NUMBINS;
+	pthread_create(&id2, NULL, calcHistogram, &args2);
+
+	// joining threads
+	pthread_join(id1, NULL);
+	int *histogramVals1 = args1.histogramVals;
+	pthread_join(id2, NULL);
+	int *histogramVals2 = args2.histogramVals;
+
+	// add the two threads' histograms together
+	int *newHistogramVals = malloc(NUMBINS * sizeof(int));
+	for (int c = 0; c < NUMBINS; c++) {
+		int newVal = histogramVals1[c] + histogramVals2[c];
+		newHistogramVals[c] = newVal;
+	}
+
+	//	// print values of the new Histogram
+	for (int p = 0; p < NUMBINS; p++){
+		printf("bin: %d  binStart: %f   binEnd:  %f  Histogram Value: %d\n", p, binSize*(float)p, binSize*(float)(p+1), newHistogramVals[p]);
 	}
 
 	return EXIT_SUCCESS;
@@ -76,12 +94,10 @@ int main(void) {
 
 /*-------------------------------------------------------------------
  * Function:    calcHistogram
- * Purpose:     Calculate Histogram result is in a global variable histogramVals.
- * In args:     data:  values to be histogrammed.
- *              numDataPoints:  Number of data points to be histogrammed.
- *              numBins:  Number of bins in output histogram
+ * Purpose:     Calculate the histogram values of a local histogram struct
+ * In args:     void * arg whose value represents the histogram struct to cast from
  * Outputs:     Histogram of values stored in global histogramVals
-				binSize in global variable.
+				binSize in local histogram struct
  *
  */
 
